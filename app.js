@@ -8,7 +8,7 @@ const app = express();
 
 app.set('view engine', 'ejs');
 
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + "/public/"));
 
 mongoose.connect(process.env.MONGODB_URI, {
@@ -27,7 +27,7 @@ const itemsSchema = {
 const Item = mongoose.model("Item", itemsSchema);
 
 const item1 = new Item({
-  name: "Welcome to your Task Manager"
+  name: "Welcome to your todolist"
 });
 
 const item2 = new Item({
@@ -41,68 +41,53 @@ const item3 = new Item({
 const defaultItems = [item1, item2, item3];
 
 const listSchema = {
-  name:String,
-  items:[itemsSchema]
+  name: String,
+  items: [itemsSchema]
 };
 
-const List = mongoose.model("List",listSchema);
+const List = mongoose.model("List", listSchema);
 
-
-
-
-app.get("/", async function(req, res) {
+app.get("/", async function (req, res) {
   try {
-    // Use async/await to find all items from the database and render them
     const foundItems = await Item.find({});
     if (foundItems.length === 0) {
-      Item.insertMany(defaultItems)
-        .then(() => {
-          console.log("Successfully saved default items to DB.");
-          res.redirect("/");
-        })
-        .catch(err => {
-          console.log(err);
-          res.redirect("/");
-        });
-    }
-    else{
+      await Item.insertMany(defaultItems);
+      console.log("Successfully saved default items to DB.");
+      res.redirect("/");
+    } else {
       res.render("list", { listTitle: "Today", newListItems: foundItems });
     }
-  } 
-  catch (err) {
+  } catch (err) {
     console.error("Error fetching items:", err);
+    res.status(500).send("Internal Server Error");
   }
 });
 
-app.get("/:customListName", async function(req, res) {
+app.get("/:customListName", async function (req, res) {
   const customListName = _.capitalize(req.params.customListName);
 
   try {
-    // Use async/await to find a list with the specified name
     const foundList = await List.findOne({ name: customListName });
 
     if (!foundList) {
-      // Create a new list if it doesn't exist
       const list = new List({
         name: customListName,
-        items: defaultItems // Make sure it's "items" (plural)
+        items: defaultItems
       });
 
       await list.save();
 
-      // Redirect to the newly created list
       res.redirect("/" + customListName);
     } else {
-      // Show an existing list
       res.render("list", { listTitle: foundList.name, newListItems: foundList.items });
     }
   } catch (err) {
     console.error("Error finding or creating list:", err);
+    res.status(500).send("Internal Server Error");
   }
 });
 
-
-app.post("/", async function(req, res) {
+app.post("/", async function (req, res) {
   const itemName = req.body.newItem;
   const listName = req.body.list;
 
@@ -124,42 +109,41 @@ app.post("/", async function(req, res) {
     }
   } catch (err) {
     console.error("Error saving item or finding list:", err);
+    res.status(500).send("Internal Server Error");
   }
 });
 
-
-app.post("/delete", async function(req, res) {
+app.post("/delete", async function (req, res) {
   const checkedItemId = req.body.checkbox;
   const listName = req.body.listName;
 
   if (listName === "Today") {
     try {
-      // Use async/await to find and remove the item by ID
       await Item.findByIdAndRemove(checkedItemId);
       console.log("Successfully deleted the checked item!");
       res.redirect("/");
     } catch (err) {
       console.error("Error deleting item:", err);
+      res.status(500).send("Internal Server Error");
     }
   } else {
     try {
       const foundList = await List.findOne({ name: listName });
       if (foundList) {
-        // Use async/await to update the list and remove the item
         await foundList.updateOne({ $pull: { items: { _id: checkedItemId } } });
         res.redirect("/" + listName);
       }
     } catch (err) {
       console.error("Error updating list or deleting item:", err);
+      res.status(500).send("Internal Server Error");
     }
   }
 });
 
-
-app.get("/about", function(req, res){
+app.get("/about", function (req, res) {
   res.render("about");
 });
 
-app.listen(3000, function() {
+app.listen(3000, function () {
   console.log("Server started on port 3000");
 });
