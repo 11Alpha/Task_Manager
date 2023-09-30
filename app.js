@@ -1,5 +1,3 @@
-//jshint esversion:6
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -29,7 +27,7 @@ const itemsSchema = {
 const Item = mongoose.model("Item", itemsSchema);
 
 const item1 = new Item({
-  name: "Welcome to your todolist"
+  name: "Welcome to your Task Manager"
 });
 
 const item2 = new Item({
@@ -56,18 +54,17 @@ app.get("/", async function(req, res) {
   try {
     // Use async/await to find all items from the database and render them
     const foundItems = await Item.find({});
-    if(foundItems.length === 0){
-      
-    Item.insertMany(defaultItems)
-    .then(() => {
-      console.log("Successfully saved default items to DB.");
-    })
-    .catch(err => {
-      console.log(err);
-    });
-      res.redirect("/");
+    if (foundItems.length === 0) {
+      Item.insertMany(defaultItems)
+        .then(() => {
+          console.log("Successfully saved default items to DB.");
+          res.redirect("/");
+        })
+        .catch(err => {
+          console.log(err);
+          res.redirect("/");
+        });
     }
-
     else{
       res.render("list", { listTitle: "Today", newListItems: foundItems });
     }
