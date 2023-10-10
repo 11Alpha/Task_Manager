@@ -11,14 +11,18 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + "/public/"));
 
+mongoose.set('strictQuery', false);
+
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
+  useFindAndModify: false // Add this line
 }).then(() => {
   console.log("Connected to MongoDB");
 }).catch(err => {
   console.error("Error connecting to MongoDB:", err);
 });
+
 
 const itemsSchema = {
   name: String
